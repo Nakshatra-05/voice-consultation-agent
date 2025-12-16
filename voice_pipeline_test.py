@@ -1,3 +1,5 @@
+# Initial offline end-to-end voice pipeline test
+
 from app.stt_module import transcribe_audio
 from app.tts_module import speak_text
 from app.llm_module import generate_response
