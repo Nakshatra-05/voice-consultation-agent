@@ -1,15 +1,16 @@
-def generate_response(user_text: str) -> str:
-    """
-    Placeholder for LLM logic.
-    For now, uses simple rules until we plug in Llama / GPT.
-    """
-    text = user_text.lower()
+def generate_response(user_text: str, language: str) -> str:
+    if language == "hi":
+        if "सेवा" in user_text or "services" in user_text:
+            return "आईटेकसीड एआई, डेटा और सॉफ्टवेयर कंसल्टिंग सेवाएं प्रदान सकती है।"
+        elif "नमस्ते" in user_text:
+            return "नमस्ते! मैं आपकी कैसे मदद कर सकती हूँ?"
+        else:
+            return "आईटेकसीड से संपर्क करने के लिए धन्यवाद। मैं आपकी क्या सहायता कर सकती हूँ।"
 
-    if "services" in text or "what do you do" in text:
-        return "iTechSeed provides AI, data, and software consultation services."
-    elif "hello" in text or "hi" in text:
-        return "Hello! I am the iTechSeed Voice Consultation Agent. How can I help you today?"
-    elif "thank you" in text:
-        return "You are welcome! Let me know if you have more questions."
+    # Default: English
+    if "services" in user_text.lower():
+        return "iTechSeed provides AI, data engineering, and software consulting services."
+    elif "hello" in user_text.lower():
+        return "Hello! How can I assist you today?"
     else:
-        return "I can help you with consultation details, services, or general queries about iTechSeed."
+        return "Thank you for contacting iTechSeed. How can I help you?"

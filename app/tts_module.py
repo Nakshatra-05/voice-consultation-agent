@@ -7,18 +7,22 @@ load_dotenv()
 speech_key = os.getenv("AZURE_SPEECH_KEY")
 speech_region = os.getenv("AZURE_SPEECH_REGION")
 
-speech_config = speechsdk.SpeechConfig(
-    subscription=speech_key,
-    region=speech_region
-)
+def synthesize_to_file(text: str, language: str, output_path: str):
+    speech_config = speechsdk.SpeechConfig(
+        subscription=speech_key,
+        region=speech_region
+    )
 
-# Default voice – we can change later for Hindi, etc.
-speech_config.speech_synthesis_voice_name = "en-IN-NeerjaNeural"
-synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
+    # Dynamic voice selection
+    if language == "hi":
+        speech_config.speech_synthesis_voice_name = "hi-IN-SwaraNeural"
+    else:
+        speech_config.speech_synthesis_voice_name = "en-IN-NeerjaNeural"
 
-def speak_text(text: str):
-    """
-    Speaks the given text using Azure TTS.
-    """
-    result = synthesizer.speak_text_async(text).get()
-    return result
+    audio_config = speechsdk.audio.AudioOutputConfig(filename=output_path)
+    synthesizer = speechsdk.SpeechSynthesizer(
+        speech_config=speech_config,
+        audio_config=audio_config
+    )
+
+    synthesizer.speak_text_async(text).get()
