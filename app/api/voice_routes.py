@@ -1,18 +1,29 @@
+import os
 from fastapi import APIRouter, UploadFile, File
+from app.stt_module import transcribe_audio
 
 router = APIRouter()
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/process")
 async def process_voice(file: UploadFile = File(...)):
     """
-    This endpoint will:
-    1. Accept an audio file
-    2. Convert speech to text
-    3. Generate agent response
-    4. Convert response to speech
-    (Logic will be added step-by-step)
+    Accepts an audio file, saves it temporarily,
+    runs Whisper STT, and returns transcription.
     """
+
+    # 1. Save uploaded file
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # 2. Run Speech-to-Text
+    transcription = transcribe_audio(file_path)
+
+    # 3. Return response
     return {
         "filename": file.filename,
-        "message": "Voice processing endpoint connected successfully"
+        "transcription": transcription
     }
