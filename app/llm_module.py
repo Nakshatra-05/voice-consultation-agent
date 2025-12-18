@@ -1,4 +1,5 @@
 def generate_response(user_text: str, language: str) -> str:
+    user_text = user_text.lower()
     if language == "hi":
         if "सेवा" in user_text or "services" in user_text:
             return "आईटेकसीड एआई, डेटा और सॉफ्टवेयर कंसल्टिंग सेवाएं प्रदान सकती है।"

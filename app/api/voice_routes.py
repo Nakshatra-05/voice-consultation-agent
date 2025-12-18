@@ -15,20 +15,21 @@ OUTPUT_DIR = "outputs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# mp4 allowed ONLY for input
 ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a"}
 
 
 @router.post("/process")
-async def process_voice(file: UploadFile = File(...)):
+async def process_voice(
+    file: UploadFile = File(...),
+    preferred_language: str | None = None
+):
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file uploaded")
 
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail="Unsupported file format. Upload wav, mp3, or m4a."
-        )
+        raise HTTPException(status_code=400, detail="Unsupported file format")
 
     input_path = os.path.join(UPLOAD_DIR, file.filename)
     output_path = os.path.join(OUTPUT_DIR, "response.wav")
@@ -36,27 +37,26 @@ async def process_voice(file: UploadFile = File(...)):
     try:
         logger.info(f"Received file: {file.filename}")
 
-        # 1️⃣ Save uploaded audio
+        # Save input file
         with open(input_path, "wb") as f:
             f.write(await file.read())
 
-        # 2️⃣ Speech-to-Text + language detection
+        # STT
         stt_result = transcribe_audio(input_path)
         user_text = stt_result["text"]
-        language = stt_result["language"]
+        detected_language = stt_result["language"]
 
-        logger.info(f"Detected language: {language}")
-        logger.info(f"User text: {user_text}")
+        language = preferred_language or detected_language
 
-        # 3️⃣ Agent response (language-aware)
+        logger.info(f"STT text: {user_text}")
+        logger.info(f"Language: {language}")
+
+        # Agent response
         agent_reply = generate_response(user_text, language)
-        logger.info(f"Agent reply: {agent_reply}")
 
-        # 4️⃣ Text-to-Speech (dynamic voice)
+        # TTS
         synthesize_to_file(agent_reply, language, output_path)
-        logger.info("TTS audio generated successfully")
 
-        # 5️⃣ Return audio response
         return FileResponse(
             output_path,
             media_type="audio/wav",
@@ -64,14 +64,9 @@ async def process_voice(file: UploadFile = File(...)):
         )
 
     except Exception as e:
-        logger.error(f"Voice processing failed: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Voice processing failed"
-        )
+        logger.error(f"Pipeline failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        # 6️⃣ Cleanup input audio
         if os.path.exists(input_path):
             os.remove(input_path)
-            logger.info("Temporary input file removed")
