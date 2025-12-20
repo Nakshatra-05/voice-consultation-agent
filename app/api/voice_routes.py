@@ -7,7 +7,9 @@ from app.stt_module import transcribe_audio
 from app.llm_module import generate_response
 from app.tts_module import synthesize_to_file
 from app.session_manager import create_session, add_message
-from app.utils import logger
+from app.session_manager import get_session_history
+
+from app.utils import logger, log_interaction
 
 router = APIRouter()
 
@@ -84,10 +86,22 @@ async def process_voice(
             fallback_text = (
                 "Sorry, I could not hear that clearly. Could you please repeat?"
                 if language != "hi"
-                else "माफ़ कीजिए, मैं स्पष्ट रूप से सुन नहीं पाया। कृपया दोबारा बोलें।"
+                else "माफ़ कीजिए, मैं स्पष्ट रूप से सुन नहीं पायी। कृपया दोबारा बोलें।"
             )
 
+            add_message(session_id, "user", "[Unclear audio]")
             add_message(session_id, "agent", fallback_text)
+
+            log_interaction(
+                session_id=session_id,
+                language=language,
+                user_text="[Unclear audio]",
+                agent_reply=fallback_text,
+                fallback=True
+            )
+
+
+
 
             synthesize_to_file(fallback_text, language, output_path)
             background_tasks.add_task(cleanup_file, output_path)
@@ -108,6 +122,14 @@ async def process_voice(
         # ---------- Agent logic ----------
         agent_reply = generate_response(user_text, language)
         add_message(session_id, "agent", agent_reply)
+
+        log_interaction(
+            session_id=session_id,
+            language=language,
+            user_text=user_text,
+            agent_reply=agent_reply,
+            fallback=False
+        )
 
         # ---------- Text-to-Speech ----------
         synthesize_to_file(agent_reply, language, output_path)
@@ -136,3 +158,20 @@ async def process_voice(
                 os.remove(input_path)
             except Exception:
                 pass
+
+# Conversation History Endpoint
+
+@router.get("/history/{session_id}")
+def get_conversation_history(session_id: str):
+    history = get_session_history(session_id)
+
+    if not history:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found or no conversation history"
+        )
+
+    return {
+        "session_id": session_id,
+        "messages": history
+    }

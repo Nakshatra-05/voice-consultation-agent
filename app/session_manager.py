@@ -20,3 +20,7 @@ def add_message(session_id: str, role: str, content: str):
 
 def get_history(session_id: str):
     return _sessions.get(session_id, [])
+
+def get_session_history(session_id: str):
+    return _sessions.get(session_id, [])
+
